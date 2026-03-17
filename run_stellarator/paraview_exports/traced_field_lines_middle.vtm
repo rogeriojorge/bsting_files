@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<VTKFile type="vtkMultiBlockDataSet" version="1.0" byte_order="LittleEndian" header_type="UInt32" compressor="vtkZLibDataCompressor">
+  <vtkMultiBlockDataSet>
+    <DataSet index="0" name="middle_line_000" file="traced_field_lines_middle/traced_field_lines_middle_0.vtp"/>
+    <DataSet index="1" name="middle_line_001" file="traced_field_lines_middle/traced_field_lines_middle_1.vtp"/>
+    <DataSet index="2" name="middle_line_002" file="traced_field_lines_middle/traced_field_lines_middle_2.vtp"/>
+    <DataSet index="3" name="middle_line_003" file="traced_field_lines_middle/traced_field_lines_middle_3.vtp"/>
+    <DataSet index="4" name="middle_line_004" file="traced_field_lines_middle/traced_field_lines_middle_4.vtp"/>
+    <DataSet index="5" name="middle_line_005" file="traced_field_lines_middle/traced_field_lines_middle_5.vtp"/>
+    <DataSet index="6" name="middle_line_006" file="traced_field_lines_middle/traced_field_lines_middle_6.vtp"/>
+    <DataSet index="7" name="middle_line_007" file="traced_field_lines_middle/traced_field_lines_middle_7.vtp"/>
+    <DataSet index="8" name="middle_line_008" file="traced_field_lines_middle/traced_field_lines_middle_8.vtp"/>
+    <DataSet index="9" name="middle_line_009" file="traced_field_lines_middle/traced_field_lines_middle_9.vtp"/>
+    <DataSet index="10" name="middle_line_010" file="traced_field_lines_middle/traced_field_lines_middle_10.vtp"/>
+    <DataSet index="11" name="middle_line_011" file="traced_field_lines_middle/traced_field_lines_middle_11.vtp"/>
+    <DataSet index="12" name="middle_line_012" file="traced_field_lines_middle/traced_field_lines_middle_12.vtp"/>
+    <DataSet index="13" name="middle_line_013" file="traced_field_lines_middle/traced_field_lines_middle_13.vtp"/>
+    <DataSet index="14" name="middle_line_014" file="traced_field_lines_middle/traced_field_lines_middle_14.vtp"/>
+    <DataSet index="15" name="middle_line_015" file="traced_field_lines_middle/traced_field_lines_middle_15.vtp"/>
+    <DataSet index="16" name="middle_line_016" file="traced_field_lines_middle/traced_field_lines_middle_16.vtp"/>
+  </vtkMultiBlockDataSet>
+</VTKFile>

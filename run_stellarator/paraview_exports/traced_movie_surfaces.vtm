@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<VTKFile type="vtkMultiBlockDataSet" version="1.0" byte_order="LittleEndian" header_type="UInt32" compressor="vtkZLibDataCompressor">
+  <vtkMultiBlockDataSet>
+    <DataSet index="0" name="middle_segment_00" file="traced_movie_surfaces/traced_movie_surfaces_0.vts"/>
+    <DataSet index="1" name="middle_segment_01" file="traced_movie_surfaces/traced_movie_surfaces_1.vts"/>
+    <DataSet index="2" name="middle_segment_02" file="traced_movie_surfaces/traced_movie_surfaces_2.vts"/>
+    <DataSet index="3" name="middle_segment_03" file="traced_movie_surfaces/traced_movie_surfaces_3.vts"/>
+    <DataSet index="4" name="middle_segment_04" file="traced_movie_surfaces/traced_movie_surfaces_4.vts"/>
+    <DataSet index="5" name="middle_segment_05" file="traced_movie_surfaces/traced_movie_surfaces_5.vts"/>
+    <DataSet index="6" name="middle_segment_06" file="traced_movie_surfaces/traced_movie_surfaces_6.vts"/>
+    <DataSet index="7" name="middle_segment_07" file="traced_movie_surfaces/traced_movie_surfaces_7.vts"/>
+    <DataSet index="8" name="middle_segment_08" file="traced_movie_surfaces/traced_movie_surfaces_8.vts"/>
+    <DataSet index="9" name="middle_segment_09" file="traced_movie_surfaces/traced_movie_surfaces_9.vts"/>
+    <DataSet index="10" name="middle_segment_10" file="traced_movie_surfaces/traced_movie_surfaces_10.vts"/>
+    <DataSet index="11" name="middle_segment_11" file="traced_movie_surfaces/traced_movie_surfaces_11.vts"/>
+    <DataSet index="12" name="middle_segment_12" file="traced_movie_surfaces/traced_movie_surfaces_12.vts"/>
+    <DataSet index="13" name="middle_segment_13" file="traced_movie_surfaces/traced_movie_surfaces_13.vts"/>
+    <DataSet index="14" name="middle_segment_14" file="traced_movie_surfaces/traced_movie_surfaces_14.vts"/>
+    <DataSet index="15" name="middle_segment_15" file="traced_movie_surfaces/traced_movie_surfaces_15.vts"/>
+    <DataSet index="16" name="outer_segment_00" file="traced_movie_surfaces/traced_movie_surfaces_16.vts"/>
+    <DataSet index="17" name="outer_segment_01" file="traced_movie_surfaces/traced_movie_surfaces_17.vts"/>
+    <DataSet index="18" name="outer_segment_02" file="traced_movie_surfaces/traced_movie_surfaces_18.vts"/>
+    <DataSet index="19" name="outer_segment_03" file="traced_movie_surfaces/traced_movie_surfaces_19.vts"/>
+    <DataSet index="20" name="outer_segment_04" file="traced_movie_surfaces/traced_movie_surfaces_20.vts"/>
+    <DataSet index="21" name="outer_segment_05" file="traced_movie_surfaces/traced_movie_surfaces_21.vts"/>
+    <DataSet index="22" name="outer_segment_06" file="traced_movie_surfaces/traced_movie_surfaces_22.vts"/>
+    <DataSet index="23" name="outer_segment_07" file="traced_movie_surfaces/traced_movie_surfaces_23.vts"/>
+    <DataSet index="24" name="outer_segment_08" file="traced_movie_surfaces/traced_movie_surfaces_24.vts"/>
+    <DataSet index="25" name="outer_segment_09" file="traced_movie_surfaces/traced_movie_surfaces_25.vts"/>
+    <DataSet index="26" name="outer_segment_10" file="traced_movie_surfaces/traced_movie_surfaces_26.vts"/>
+    <DataSet index="27" name="outer_segment_11" file="traced_movie_surfaces/traced_movie_surfaces_27.vts"/>
+    <DataSet index="28" name="outer_segment_12" file="traced_movie_surfaces/traced_movie_surfaces_28.vts"/>
+    <DataSet index="29" name="outer_segment_13" file="traced_movie_surfaces/traced_movie_surfaces_29.vts"/>
+    <DataSet index="30" name="outer_segment_14" file="traced_movie_surfaces/traced_movie_surfaces_30.vts"/>
+    <DataSet index="31" name="outer_segment_15" file="traced_movie_surfaces/traced_movie_surfaces_31.vts"/>
+  </vtkMultiBlockDataSet>
+</VTKFile>

@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<VTKFile type="vtkMultiBlockDataSet" version="1.0" byte_order="LittleEndian" header_type="UInt32" compressor="vtkZLibDataCompressor">
+  <vtkMultiBlockDataSet>
+    <DataSet index="0" name="outer_line_000" file="traced_field_lines_outer/traced_field_lines_outer_0.vtp"/>
+    <DataSet index="1" name="outer_line_001" file="traced_field_lines_outer/traced_field_lines_outer_1.vtp"/>
+    <DataSet index="2" name="outer_line_002" file="traced_field_lines_outer/traced_field_lines_outer_2.vtp"/>
+    <DataSet index="3" name="outer_line_003" file="traced_field_lines_outer/traced_field_lines_outer_3.vtp"/>
+    <DataSet index="4" name="outer_line_004" file="traced_field_lines_outer/traced_field_lines_outer_4.vtp"/>
+    <DataSet index="5" name="outer_line_005" file="traced_field_lines_outer/traced_field_lines_outer_5.vtp"/>
+    <DataSet index="6" name="outer_line_006" file="traced_field_lines_outer/traced_field_lines_outer_6.vtp"/>
+    <DataSet index="7" name="outer_line_007" file="traced_field_lines_outer/traced_field_lines_outer_7.vtp"/>
+    <DataSet index="8" name="outer_line_008" file="traced_field_lines_outer/traced_field_lines_outer_8.vtp"/>
+    <DataSet index="9" name="outer_line_009" file="traced_field_lines_outer/traced_field_lines_outer_9.vtp"/>
+    <DataSet index="10" name="outer_line_010" file="traced_field_lines_outer/traced_field_lines_outer_10.vtp"/>
+    <DataSet index="11" name="outer_line_011" file="traced_field_lines_outer/traced_field_lines_outer_11.vtp"/>
+    <DataSet index="12" name="outer_line_012" file="traced_field_lines_outer/traced_field_lines_outer_12.vtp"/>
+    <DataSet index="13" name="outer_line_013" file="traced_field_lines_outer/traced_field_lines_outer_13.vtp"/>
+    <DataSet index="14" name="outer_line_014" file="traced_field_lines_outer/traced_field_lines_outer_14.vtp"/>
+    <DataSet index="15" name="outer_line_015" file="traced_field_lines_outer/traced_field_lines_outer_15.vtp"/>
+    <DataSet index="16" name="outer_line_016" file="traced_field_lines_outer/traced_field_lines_outer_16.vtp"/>
+  </vtkMultiBlockDataSet>
+</VTKFile>
