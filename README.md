@@ -4,6 +4,65 @@ This repository is a small, shareable bundle of the main scripts, runtime input,
 
 It is meant to be easy to browse and easy to reuse. The large simulation outputs, executables, and most generated artifacts are intentionally not included.
 
+<p align="center">
+  <img src="docs/assets/traced_surface.jpg" alt="Traced surface preview" width="32%">
+  <img src="docs/assets/te_3d_frame.jpg" alt="3D temperature movie preview" width="32%">
+  <img src="docs/assets/panel_frame.jpg" alt="Panel movie preview" width="32%">
+</p>
+
+<p align="center">
+  <video src="docs/assets/te_3d_preview.mp4" controls muted playsinline width="720"></video>
+</p>
+
+Direct video link: [docs/assets/te_3d_preview.mp4](docs/assets/te_3d_preview.mp4)
+
+## Quick layout
+
+```text
+bsting_files/
+|-- README.md
+|-- generate_grid.py
+|-- panel_movies.py
+|-- panel_movies.mp4
+|-- visualize_temp_3d_pyvista.py
+|-- te_3d_pyvista.mp4
+|-- docs/
+|   `-- assets/
+|       |-- panel_frame.jpg
+|       |-- te_3d_frame.jpg
+|       |-- te_3d_preview.mp4
+|       `-- traced_surface.jpg
+`-- run_stellarator/
+    |-- create_dommaschk_grid.py
+    |-- data/
+    |   `-- BOUT.inp
+    `-- paraview_exports/
+        |-- traced_field_lines_middle.vtm
+        |-- traced_field_lines_outer.vtm
+        |-- traced_movie_surfaces.vtm
+        `-- traced_movie_surfaces_debug_fixed.png
+```
+
+## Requirements
+
+Exact Python package versions used in the local environment for the plotting and visualization scripts:
+
+- `numpy==2.3.4`
+- `matplotlib==3.8.4`
+- `scipy==1.16.0`
+- `tqdm==4.66.4`
+- `pyvista==0.46.4`
+- `boututils==0.2.1`
+
+Local source dependencies used by the shared scripts:
+
+- `generate_grid.py` from this repository
+- `zoidberg` modules from a local source checkout next to the original working repository
+
+Optional system tool:
+
+- `ffmpeg` if you want to write MP4 files from the plotting workflow
+
 ## What this repository is for
 
 Use this repository if you want to:
