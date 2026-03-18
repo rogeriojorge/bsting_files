@@ -4,17 +4,19 @@ This repository is a small, shareable bundle of the main scripts, runtime input,
 
 It is meant to be easy to browse and easy to reuse. The large simulation outputs, executables, and most generated artifacts are intentionally not included.
 
+The figures and movies below were regenerated from the current stabilized local stellarator workflow.
+
 <p align="center">
-  <img src="docs/assets/traced_surface.jpg" alt="Traced surface preview" width="32%">
-  <img src="docs/assets/te_3d_frame.jpg" alt="3D temperature movie preview" width="32%">
-  <img src="docs/assets/panel_frame.jpg" alt="Panel movie preview" width="32%">
+  <img src="docs/assets/fci_maps_overview.jpg" alt="FCI map overview after targeted x=1 trace repair" width="49%">
+  <img src="docs/assets/hermes_stall_diagnostics.jpg" alt="Hermes stall diagnostics for the local stellarator run" width="49%">
 </p>
 
 <p align="center">
-  <video src="docs/assets/te_3d_preview.mp4" controls muted playsinline width="720"></video>
+  <video src="te_3d_pyvista.mp4" controls muted playsinline width="49%"></video>
+  <video src="panel_movies.mp4" controls muted playsinline width="49%"></video>
 </p>
 
-Direct video link: [docs/assets/te_3d_preview.mp4](docs/assets/te_3d_preview.mp4)
+Direct video links: [te_3d_pyvista.mp4](te_3d_pyvista.mp4) and [panel_movies.mp4](panel_movies.mp4)
 
 ## Quick layout
 
@@ -28,10 +30,9 @@ bsting_files/
 |-- te_3d_pyvista.mp4
 |-- docs/
 |   `-- assets/
-|       |-- panel_frame.jpg
-|       |-- te_3d_frame.jpg
-|       |-- te_3d_preview.mp4
-|       `-- traced_surface.jpg
+|       |-- fci_maps_overview.jpg
+|       |-- hermes_stall_diagnostics.jpg
+|       `-- ...
 `-- run_stellarator/
     |-- create_dommaschk_grid.py
     |-- data/
@@ -102,6 +103,12 @@ This repository is not intended to be a complete, ready-to-run Hermes case by it
 
 - `te_3d_pyvista.mp4`
   Small 3D PyVista movie showing temperature on traced magnetic surfaces.
+
+- `docs/assets/fci_maps_overview.jpg`
+  Compact grid and FCI-map diagnostic figure regenerated from the repaired local grid workflow.
+
+- `docs/assets/hermes_stall_diagnostics.jpg`
+  Compact stall-analysis figure showing the late-time boundary-adjacent runaway signature.
 
 - `run_stellarator/paraview_exports/traced_movie_surfaces.vtm`
   Main traced-surface export for ParaView.
