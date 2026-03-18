@@ -20,8 +20,8 @@ from zoidberg import field as zb_field
 from zoidberg import fieldtracer as zb_fieldtracer
 
 
-DATA_DIR = REPO_ROOT / "run_stellarator" / "data"
-PARAVIEW_DIR = REPO_ROOT / "run_stellarator" / "paraview_exports"
+DATA_DIR = REPO_ROOT / "run_dommaschk" / "data"
+PARAVIEW_DIR = REPO_ROOT / "run_dommaschk" / "paraview_exports"
 GRID_PATH = DATA_DIR / "Dommaschk.fci.nc"
 OUTPUT_DIR = PLOT_DIR / "outputs"
 MOVIE_PATH = OUTPUT_DIR / "parallel_velocity_traced_surface_movie.mp4"

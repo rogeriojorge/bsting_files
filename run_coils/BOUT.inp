@@ -1,0 +1,91 @@
+# Stellarator diffusion
+
+nout = 342
+timestep = 200
+
+[input]
+error_on_unused_options = false
+
+MYG = 1
+
+[mesh]
+
+file = "data/coils.fci.nc"
+
+[mesh:paralleltransform]
+type = fci
+
+[mesh:paralleltransform:xzinterpolation]
+type = monotonichermitespline
+
+[solver]
+type = pvode
+mxstep = 1000000
+
+debug_on_failure = True
+
+[hermes]
+show_timesteps = true
+
+components = h+, e, collisions, sheath_boundary_parallel, electron_force_balance
+
+Nnorm = 5e18
+Bnorm = 2.5
+Tnorm = 20
+
+[h+]
+type = evolve_density, evolve_momentum, evolve_pressure, anomalous_diffusion_3d
+
+AA = 1
+charge = 1
+anomalous_D = 0.5
+anomalous_chi = 1.5
+anomalous_nu = 0.5
+
+thermal_conduction = false
+low_n_diffuse_perp = true
+diagnose = true
+
+[Nh+]
+
+function = 1-0.95*x
+source = 4.8e2*gauss(x - 1, 0.24)
+bndry_core = dirichlet_o2(1.0)
+bndry_par_all = parallel_neumann_o1
+bndry_all = neumann
+
+[Ph+]
+function = `Nh+`:function
+source = 2*4.8e6*gauss(x, 0.24)
+bndry_core = dirichlet_o2(1.0)
+bndry_par_all = parallel_neumann_o1
+bndry_all = neumann
+
+[Vh+]
+bndry_all = neumann
+bndry_par_all = parallel_neumann_o1
+
+[NVh+]
+bndry_all = neumann
+bndry_par_all = parallel_neumann_o1
+
+[e]
+type = quasineutral, zero_current, evolve_pressure, anomalous_diffusion_3d
+
+AA = 1 / 1836
+charge = -1
+
+anomalous_D = 0.5
+anomalous_chi = 1.5
+anomalous_nu = 0.5
+
+thermal_conduction = false
+low_n_diffuse_perp = true
+diagnose = true
+
+[Pe]
+function = `Ph+`:function
+source = `Ph+`:source
+bndry_core = dirichlet_o2(1.0)
+bndry_all = neumann
+bndry_par_all = parallel_neumann_o1

@@ -12,7 +12,7 @@ The intent is simple:
 
 At a high level, this repository does three things:
 
-1. defines the stellarator run setup in `run_stellarator/`
+1. defines the Dommaschk baseline case in `run_dommaschk/` and the coil-driven SIMSOPT case in `run_coils/`
 2. brings in Hermes-3 and the patched Zoidberg fork as submodules in `external/`
 3. turns the latest run outputs into review-friendly figures, panel movies, traced-surface movies, and ParaView exports through the scripts in `plot/`
 
@@ -21,10 +21,25 @@ If you only need to understand how to use the repository, read the workflow belo
 ## Typical Workflow
 
 1. Update or rebuild the code in `external/hermes-3/` if needed.
-2. Rebuild the grid with `run_stellarator/build_dommaschk_grid.py`.
-3. Run Hermes from `run_stellarator/`.
+2. Rebuild the Dommaschk grid with `run_dommaschk/build_dommaschk_grid.py` or the coil grid with `run_coils/build_coil_grid.py`.
+3. Run Hermes from the case directory you want to evolve.
 4. Regenerate panels, movies, and ParaView exports with the scripts in `plot/`.
 5. Review the outputs locally, then commit only the scripts, selected small assets, and submodule pointers.
+
+## Regression Checks
+
+The coil workflow now has two repeatable regression checks under `tests/`:
+
+- `tests/test_coil_field_comparison.py` compares direct SIMSOPT field values and field-line tracing against the Zoidberg wrapper.
+- `tests/test_coil_grid_fields.py` checks that the generated coil FCI grid includes the parallel-Jacobian fields Hermes needs at startup.
+
+Run them from the repository root with:
+
+```bash
+pytest tests/test_coil_field_comparison.py tests/test_coil_grid_fields.py
+```
+
+If you rebuild the Hermes executable on macOS and launch it through the case-local symlinks, make sure the executable still carries RPATHs pointing at `external/hermes-3/build/` and `external/hermes-3/build/external/BOUT-dev/lib/`.
 
 ## Visual Overview
 
@@ -48,8 +63,11 @@ If you only need to understand how to use the repository, read the workflow belo
 
 The repository is organized around three user-facing areas.
 
-- `run_stellarator/`
-  The runnable case: inputs, grid-generation code, diagnostics, local run data, and ParaView entry files.
+- `run_dommaschk/`
+  The original runnable Dommaschk case: inputs, grid-generation code, diagnostics, local run data, and ParaView entry files.
+
+- `run_coils/`
+  The new coil-driven case: SIMSOPT JSON inputs, a minimal coil-grid builder, and a parallel Hermes input deck.
 
 - `plot/`
   The postprocessing layer: scripts that read the latest available run data and turn it into review media.
@@ -71,20 +89,29 @@ These are part of the local workflow, but only their submodule pointers are trac
 
 ### Run and analysis scripts
 
-- `run_stellarator/build_dommaschk_grid.py`
-  Rebuilds `run_stellarator/data/Dommaschk.fci.nc` with the targeted `x=1` boundary-trace repair.
+- `run_dommaschk/build_dommaschk_grid.py`
+  Rebuilds `run_dommaschk/data/Dommaschk.fci.nc` with the targeted `x=1` boundary-trace repair.
 
-- `run_stellarator/diagnose_hermes_stall.py`
+- `run_dommaschk/diagnose_hermes_stall.py`
   Reads the latest available dump source and helps inspect late-time solver behavior.
 
-- `run_stellarator/dommaschk_grid_utils.py`
+- `run_dommaschk/dommaschk_grid_utils.py`
   Shared Dommaschk grid helper code used by the grid builder.
 
-- `run_stellarator/BOUT.inp`
-  Top-level Hermes input for direct launches from `run_stellarator/`.
+- `run_dommaschk/BOUT.inp`
+  Top-level Hermes input for direct launches from `run_dommaschk/`.
 
-- `run_stellarator/data/BOUT.inp`
+- `run_dommaschk/data/BOUT.inp`
   Mirrored case input inside the data directory.
+
+- `run_coils/build_coil_grid.py`
+  Loads SIMSOPT coil curves from JSON, uses the QFM surface as the outer boundary, and writes `run_coils/data/coils.fci.nc`.
+
+- `run_coils/simsopt_inputs/circurves_opt.json`
+  Coil-curve JSON copied from SIMSOPT output. The field builder assigns explicit currents to these curves.
+
+- `run_coils/simsopt_inputs/qfmsurf_opt.json`
+  QFM surface JSON used as the outer boundary for the coil-driven grid.
 
 ### Plot scripts
 
@@ -113,7 +140,13 @@ bsting_files/
 |   |-- render_parallel_velocity_panels.py
 |   |-- render_parallel_velocity_surfaces.py
 |   `-- render_temperature_surfaces.py
-`-- run_stellarator/
+|-- run_coils/
+|   |-- BOUT.inp
+|   |-- build_coil_grid.py
+|   |-- data/
+|   |-- paraview_exports/
+|   `-- simsopt_inputs/
+`-- run_dommaschk/
     |-- BOUT.inp
     |-- build_dommaschk_grid.py
     |-- diagnose_hermes_stall.py
@@ -130,9 +163,9 @@ The main local review outputs are:
 - `plot/outputs/parallel_velocity_panel_snapshots.png`
 - `plot/outputs/parallel_velocity_traced_surface_movie.mp4`
 - `plot/outputs/temperature_traced_surface_movie.mp4`
-- `run_stellarator/paraview_exports/traced_movie_surfaces.vtm`
-- `run_stellarator/paraview_exports/traced_field_lines_middle.vtm`
-- `run_stellarator/paraview_exports/traced_field_lines_outer.vtm`
+- `run_dommaschk/paraview_exports/traced_movie_surfaces.vtm`
+- `run_dommaschk/paraview_exports/traced_field_lines_middle.vtm`
+- `run_dommaschk/paraview_exports/traced_field_lines_outer.vtm`
 
 Temperature-specific ParaView exports are also produced locally when needed.
 
@@ -150,10 +183,14 @@ Kept local only:
 
 - `plot/outputs/*.mp4`
 - `plot/outputs/*.png`
-- `run_stellarator/data/BOUT.dmp*.nc`
-- `run_stellarator/data/BOUT.restart*.nc`
-- `run_stellarator/data/BOUT.log.*`
-- `run_stellarator/data/BOUT.settings`
+- `run_dommaschk/data/BOUT.dmp*.nc`
+- `run_dommaschk/data/BOUT.restart*.nc`
+- `run_dommaschk/data/BOUT.log.*`
+- `run_dommaschk/data/BOUT.settings`
+- `run_coils/data/BOUT.dmp*.nc`
+- `run_coils/data/BOUT.restart*.nc`
+- `run_coils/data/BOUT.log.*`
+- `run_coils/data/BOUT.settings`
 - `.BOUT.pid.*`
 - temperature-specific ParaView exports and all generated ParaView sidecar directories
 - submodule build artifacts and other temporary compilation files
@@ -163,6 +200,7 @@ Kept local only:
 Two details matter for reproducing the current media and behavior:
 
 - the grid build uses the repaired Dommaschk map workflow with the targeted `x=1` fix
-- the plotting scripts select the newest available run data automatically, preferring the MPI shard dumps in `run_stellarator/data/`
+- the plotting scripts select the newest available Dommaschk run data automatically, preferring the MPI shard dumps in `run_dommaschk/data/`
+- the coil workflow currently builds the grid from SIMSOPT geometry directly, using explicit currents because `circurves_opt.json` stores curves rather than a serialized `BiotSavart` object
 
 The older technical reference figures are still kept in `docs/assets/` for deeper review, including the FCI map overview and the earlier stall-diagnostics figure.

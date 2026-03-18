@@ -11,7 +11,7 @@ from matplotlib.animation import FuncAnimation
 
 PLOT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = PLOT_DIR.parent
-DATA_DIR = REPO_ROOT / "run_stellarator" / "data"
+DATA_DIR = REPO_ROOT / "run_dommaschk" / "data"
 GRID_PATH = DATA_DIR / "Dommaschk.fci.nc"
 OUTPUT_DIR = PLOT_DIR / "outputs"
 MOVIE_PATH = OUTPUT_DIR / "parallel_velocity_panel_movie.mp4"
