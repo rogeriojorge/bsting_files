@@ -159,17 +159,129 @@ def _remove_stale_outputs(paths: list[Path]) -> None:
             path.unlink()
 
 
-def _straighten_boundary_traces(grid_path: Path, boundary_count: int = 2) -> None:
+def _unwrap_periodic_values(values: np.ndarray, period: float) -> np.ndarray:
+    if values.size == 0:
+        return values.copy()
+    unwrapped = np.asarray(values, dtype=float).copy()
+    for idx in range(1, unwrapped.size):
+        delta = unwrapped[idx] - unwrapped[idx - 1]
+        if delta > period / 2.0:
+            unwrapped[idx:] -= period
+        elif delta < -period / 2.0:
+            unwrapped[idx:] += period
+    return unwrapped
+
+
+def _periodic_interpolate_missing(
+    values: np.ndarray,
+    valid_mask: np.ndarray,
+    *,
+    index_period: int,
+    value_period: float | None = None,
+) -> np.ndarray:
+    result = np.asarray(values, dtype=float).copy()
+    valid_indices = np.flatnonzero(valid_mask)
+    if valid_indices.size < 2 or valid_indices.size == result.size:
+        return result
+
+    valid_values = result[valid_mask]
+    if value_period is not None:
+        valid_values = _unwrap_periodic_values(valid_values, value_period)
+        extended_values = np.concatenate(
+            [valid_values - value_period, valid_values, valid_values + value_period]
+        )
+    else:
+        extended_values = np.tile(valid_values, 3)
+
+    extended_indices = np.concatenate(
+        [valid_indices - index_period, valid_indices, valid_indices + index_period]
+    )
+    missing_indices = np.flatnonzero(~valid_mask)
+    result[missing_indices] = np.interp(missing_indices, extended_indices, extended_values)
+    if value_period is not None:
+        result %= value_period
+    return result
+
+
+def _repair_invalid_boundary_corner_traces(grid_path: Path, repair_x: int = 1) -> dict[str, int]:
     with DataFile(str(grid_path), write=True) as grid_file:
+        forward_xt = np.asarray(grid_file.read("forward_xt_prime"))
+        forward_zt = np.asarray(grid_file.read("forward_zt_prime"))
+        forward_r = np.asarray(grid_file.read("forward_R"))
+        forward_z = np.asarray(grid_file.read("forward_Z"))
+        backward_xt = np.asarray(grid_file.read("backward_xt_prime"))
+        backward_zt = np.asarray(grid_file.read("backward_zt_prime"))
+        backward_r = np.asarray(grid_file.read("backward_R"))
+        backward_z = np.asarray(grid_file.read("backward_Z"))
+
+        nx, ny, nz = forward_xt.shape
+        repair_x = int(np.clip(repair_x, 0, nx - 1))
+        summary: dict[str, int] = {}
+
+        for prefix, xt, zt, mapped_r, mapped_z in [
+            ("forward", forward_xt, forward_zt, forward_r, forward_z),
+            ("backward", backward_xt, backward_zt, backward_r, backward_z),
+        ]:
+            invalid = (~np.isfinite(xt[repair_x])) | (xt[repair_x] < 0.0) | (xt[repair_x] > nx - 1)
+            summary[f"{prefix}_before"] = int(np.count_nonzero(invalid))
+
+            for y_idx in range(ny):
+                bad_mask = invalid[y_idx]
+                if not np.any(bad_mask):
+                    continue
+                valid_mask = ~bad_mask
+                if np.count_nonzero(valid_mask) < 2:
+                    continue
+
+                xt[repair_x, y_idx, :] = _periodic_interpolate_missing(
+                    xt[repair_x, y_idx, :], valid_mask, index_period=nz
+                )
+                zt[repair_x, y_idx, :] = _periodic_interpolate_missing(
+                    zt[repair_x, y_idx, :],
+                    valid_mask,
+                    index_period=nz,
+                    value_period=float(nz),
+                )
+                mapped_r[repair_x, y_idx, :] = _periodic_interpolate_missing(
+                    mapped_r[repair_x, y_idx, :], valid_mask, index_period=nz
+                )
+                mapped_z[repair_x, y_idx, :] = _periodic_interpolate_missing(
+                    mapped_z[repair_x, y_idx, :], valid_mask, index_period=nz
+                )
+
+            xt[repair_x] = np.clip(xt[repair_x], 0.0, nx - 1.0)
+            zt[repair_x] %= float(nz)
+
+            invalid_after = (~np.isfinite(xt[repair_x])) | (xt[repair_x] < 0.0) | (xt[repair_x] > nx - 1)
+            summary[f"{prefix}_after"] = int(np.count_nonzero(invalid_after))
+
+        grid_file.write("forward_xt_prime", forward_xt)
+        grid_file.write("forward_zt_prime", forward_zt)
+        grid_file.write("forward_R", forward_r)
+        grid_file.write("forward_Z", forward_z)
+        grid_file.write("backward_xt_prime", backward_xt)
+        grid_file.write("backward_zt_prime", backward_zt)
+        grid_file.write("backward_R", backward_r)
+        grid_file.write("backward_Z", backward_z)
+
+    return summary
+
+
+def _summarize_invalid_traces(grid_path: Path, target_x: int = 1) -> dict[str, int]:
+    with DataFile(str(grid_path)) as grid_file:
         forward_xt = np.asarray(grid_file.read("forward_xt_prime"))
         backward_xt = np.asarray(grid_file.read("backward_xt_prime"))
 
-        for x_idx in range(min(boundary_count, forward_xt.shape[0], backward_xt.shape[0])):
-            forward_xt[x_idx, :, :] = float(x_idx)
-            backward_xt[x_idx, :, :] = float(x_idx)
+    nx = forward_xt.shape[0]
+    target_x = int(np.clip(target_x, 0, nx - 1))
 
-        grid_file.write("forward_xt_prime", forward_xt)
-        grid_file.write("backward_xt_prime", backward_xt)
+    summary = {}
+    for prefix, xt in [("forward", forward_xt), ("backward", backward_xt)]:
+        invalid = (~np.isfinite(xt)) | (xt < 0.0) | (xt > nx - 1)
+        summary[f"{prefix}_invalid_total"] = int(np.count_nonzero(invalid))
+        summary[f"{prefix}_invalid_x{target_x}"] = int(np.count_nonzero(invalid[target_x]))
+        summary[f"{prefix}_invalid_x0"] = int(np.count_nonzero(invalid[0]))
+    return summary
 
 
 def _nearest_periodic_shift(delta: int, period: int) -> int:
@@ -655,7 +767,18 @@ def main() -> None:
         return_iota=True,
         write_iota=True,
     )
-    _straighten_boundary_traces(GRID_PATH)
+    repair_summary = _repair_invalid_boundary_corner_traces(GRID_PATH, repair_x=1)
+    invalid_summary = _summarize_invalid_traces(GRID_PATH, target_x=1)
+    print(
+        "Applied targeted x=1 trace repair: "
+        f"forward {repair_summary['forward_before']} -> {repair_summary['forward_after']}, "
+        f"backward {repair_summary['backward_before']} -> {repair_summary['backward_after']}"
+    )
+    print(
+        "Invalid trace summary: "
+        f"forward total={invalid_summary['forward_invalid_total']} x0={invalid_summary['forward_invalid_x0']} x1={invalid_summary['forward_invalid_x1']}; "
+        f"backward total={invalid_summary['backward_invalid_total']} x0={invalid_summary['backward_invalid_x0']} x1={invalid_summary['backward_invalid_x1']}"
+    )
 
     print(f"Creating publication-style grid panels: {PANEL_PATH}")
     create_publication_panels(GRID_PATH, PANEL_PATH, magnetic_field)
