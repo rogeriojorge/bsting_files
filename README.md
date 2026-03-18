@@ -12,8 +12,12 @@ The figures and movies below were regenerated from the current stabilized local 
 </p>
 
 <p align="center">
-  <video src="te_3d_pyvista.mp4" controls muted playsinline width="49%"></video>
-  <video src="panel_movies.mp4" controls muted playsinline width="49%"></video>
+  <a href="te_3d_pyvista.mp4">
+    <img src="docs/assets/te_3d_preview.gif" alt="Animated preview of the traced-surface temperature movie" width="49%">
+  </a>
+  <a href="panel_movies.mp4">
+    <img src="docs/assets/panel_movies_preview.gif" alt="Animated preview of the panel movie" width="49%">
+  </a>
 </p>
 
 Direct video links: [te_3d_pyvista.mp4](te_3d_pyvista.mp4) and [panel_movies.mp4](panel_movies.mp4)
@@ -32,6 +36,8 @@ bsting_files/
 |   `-- assets/
 |       |-- fci_maps_overview.jpg
 |       |-- hermes_stall_diagnostics.jpg
+|       |-- panel_movies_preview.gif
+|       |-- te_3d_preview.gif
 |       `-- ...
 `-- run_stellarator/
     |-- create_dommaschk_grid.py
@@ -103,6 +109,12 @@ This repository is not intended to be a complete, ready-to-run Hermes case by it
 
 - `te_3d_pyvista.mp4`
   Small 3D PyVista movie showing temperature on traced magnetic surfaces.
+
+- `docs/assets/panel_movies_preview.gif`
+  Animated landing-page preview of the panel movie that links through to the MP4.
+
+- `docs/assets/te_3d_preview.gif`
+  Animated landing-page preview of the traced-surface temperature movie that links through to the MP4.
 
 - `docs/assets/fci_maps_overview.jpg`
   Compact grid and FCI-map diagnostic figure regenerated from the repaired local grid workflow.
