@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import shutil
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -14,15 +15,17 @@ except ImportError:
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
+EXTERNAL_ZOIDBERG = REPO_ROOT / "external" / "zoidberg"
+RUN_DIR = Path(__file__).resolve().parent
+for extra_path in [RUN_DIR, EXTERNAL_ZOIDBERG]:
+    if str(extra_path) not in sys.path:
+        sys.path.insert(0, str(extra_path))
 
-from generate_grid import dommaschk  # noqa: E402
+from dommaschk_grid_utils import dommaschk  # noqa: E402
 from zoidberg import field as zb_field  # noqa: E402
 from zoidberg import zoidberg as zz  # noqa: E402
 
 
-RUN_DIR = Path(__file__).resolve().parent
 DATA_DIR = RUN_DIR / "data"
 GRID_PATH = DATA_DIR / "Dommaschk.fci.nc"
 PANEL_PATH = RUN_DIR / "dommaschk_grid_panels.png"
@@ -32,12 +35,24 @@ PARAVIEW_DIR = RUN_DIR / "paraview_exports"
 PANEL_SURFACES_VTK_PATH = PARAVIEW_DIR / "dommaschk_panel_surfaces.vtm"
 FORWARD_STITCHED_SHELLS_VTK_PATH = PARAVIEW_DIR / "dommaschk_stitched_shells.vtm"
 BACKWARD_STITCHED_SHELLS_VTK_PATH = PARAVIEW_DIR / "dommaschk_stitched_shells_backward.vtm"
+WRITE_DIAGNOSTICS = False
 OBSOLETE_OUTPUTS = [
     RUN_DIR / "dommaschk_mapped_surfaces.png",
     RUN_DIR / "dommaschk_zero_alignment.png",
     PARAVIEW_DIR / "dommaschk_3d_shells.vtm",
     PARAVIEW_DIR / "dommaschk_outer_surface.vts",
     PARAVIEW_DIR / "dommaschk_zero_trace.vtm",
+]
+DIAGNOSTIC_OUTPUTS = [
+    PANEL_PATH,
+    FCI_PANEL_PATH,
+    VTK_STEM.with_suffix(".vts"),
+    PANEL_SURFACES_VTK_PATH,
+    PANEL_SURFACES_VTK_PATH.with_suffix(""),
+    FORWARD_STITCHED_SHELLS_VTK_PATH,
+    FORWARD_STITCHED_SHELLS_VTK_PATH.with_suffix(""),
+    BACKWARD_STITCHED_SHELLS_VTK_PATH,
+    BACKWARD_STITCHED_SHELLS_VTK_PATH.with_suffix(""),
 ]
 
 
@@ -156,6 +171,16 @@ def _make_scalar_strip(start_values: np.ndarray, end_values: np.ndarray) -> np.n
 def _remove_stale_outputs(paths: list[Path]) -> None:
     for path in paths:
         if path.exists():
+            path.unlink()
+
+
+def _remove_paths(paths: list[Path]) -> None:
+    for path in paths:
+        if not path.exists():
+            continue
+        if path.is_dir():
+            shutil.rmtree(path)
+        else:
             path.unlink()
 
 
@@ -282,6 +307,19 @@ def _summarize_invalid_traces(grid_path: Path, target_x: int = 1) -> dict[str, i
         summary[f"{prefix}_invalid_x{target_x}"] = int(np.count_nonzero(invalid[target_x]))
         summary[f"{prefix}_invalid_x0"] = int(np.count_nonzero(invalid[0]))
     return summary
+
+
+def _straighten_boundary_traces(grid_path: Path, boundary_count: int = 2) -> None:
+    with DataFile(str(grid_path), write=True) as grid_file:
+        forward_xt = np.asarray(grid_file.read("forward_xt_prime"))
+        backward_xt = np.asarray(grid_file.read("backward_xt_prime"))
+
+        for x_idx in range(min(boundary_count, forward_xt.shape[0], backward_xt.shape[0])):
+            forward_xt[x_idx, :, :] = float(x_idx)
+            backward_xt[x_idx, :, :] = float(x_idx)
+
+        grid_file.write("forward_xt_prime", forward_xt)
+        grid_file.write("backward_xt_prime", backward_xt)
 
 
 def _nearest_periodic_shift(delta: int, period: int) -> int:
@@ -735,8 +773,11 @@ def export_vtk(grid_path: Path, vtk_stem: Path) -> Path | None:
 def main() -> None:
     _set_publication_style()
     DATA_DIR.mkdir(exist_ok=True)
-    PARAVIEW_DIR.mkdir(exist_ok=True)
     _remove_stale_outputs(OBSOLETE_OUTPUTS)
+    if WRITE_DIAGNOSTICS:
+        PARAVIEW_DIR.mkdir(exist_ok=True)
+    else:
+        _remove_paths(DIAGNOSTIC_OUTPUTS)
 
     # Preset options for Dommaschk coefficient sets.
     # dommaschk_choice = None
@@ -780,22 +821,23 @@ def main() -> None:
         f"backward total={invalid_summary['backward_invalid_total']} x0={invalid_summary['backward_invalid_x0']} x1={invalid_summary['backward_invalid_x1']}"
     )
 
-    print(f"Creating publication-style grid panels: {PANEL_PATH}")
-    create_publication_panels(GRID_PATH, PANEL_PATH, magnetic_field)
-    print(f"Creating focused FCI panels: {FCI_PANEL_PATH}")
-    create_fci_panels(GRID_PATH, FCI_PANEL_PATH)
-
-    vtk_path = export_vtk(GRID_PATH, VTK_STEM)
-    if vtk_path:
-        print(f"VTK export written to {vtk_path}")
-
-    paraview_paths = export_paraview_surfaces(GRID_PATH, PARAVIEW_DIR, magnetic_field)
-    for path in paraview_paths:
-        print(f"ParaView export written to {path}")
-
     print(f"Grid ready for Hermes at {GRID_PATH}")
-    print(f"Diagnostics figure saved to {PANEL_PATH}")
-    print(f"FCI diagnostics figure saved to {FCI_PANEL_PATH}")
+    if WRITE_DIAGNOSTICS:
+        print(f"Creating publication-style grid panels: {PANEL_PATH}")
+        create_publication_panels(GRID_PATH, PANEL_PATH, magnetic_field)
+        print(f"Creating focused FCI panels: {FCI_PANEL_PATH}")
+        create_fci_panels(GRID_PATH, FCI_PANEL_PATH)
+
+        vtk_path = export_vtk(GRID_PATH, VTK_STEM)
+        if vtk_path:
+            print(f"VTK export written to {vtk_path}")
+
+        paraview_paths = export_paraview_surfaces(GRID_PATH, PARAVIEW_DIR, magnetic_field)
+        for path in paraview_paths:
+            print(f"ParaView export written to {path}")
+
+        print(f"Diagnostics figure saved to {PANEL_PATH}")
+        print(f"FCI diagnostics figure saved to {FCI_PANEL_PATH}")
 
 
 if __name__ == "__main__":

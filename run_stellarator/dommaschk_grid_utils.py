@@ -1,3 +1,11 @@
+from pathlib import Path
+import sys
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+EXTERNAL_ZOIDBERG = REPO_ROOT / "external" / "zoidberg"
+if str(EXTERNAL_ZOIDBERG) not in sys.path:
+    sys.path.insert(0, str(EXTERNAL_ZOIDBERG))
+
 import zoidberg as zb
 import numpy as np
 from boututils.datafile import DataFile

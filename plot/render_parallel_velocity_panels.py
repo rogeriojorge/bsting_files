@@ -4,22 +4,35 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+from boutdata.collect import collect
 from boututils.datafile import DataFile
 from matplotlib.animation import FuncAnimation
 
 
-BASE_DIR = Path(__file__).resolve().parent
-DATA_DIR = BASE_DIR / "run_stellarator" / "data"
+PLOT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = PLOT_DIR.parent
+DATA_DIR = REPO_ROOT / "run_stellarator" / "data"
 GRID_PATH = DATA_DIR / "Dommaschk.fci.nc"
-SQUASHED_PATH = DATA_DIR / "BOUT.dmp.nc"
-MOVIE_PATH = BASE_DIR / "panel_movies.mp4"
-SNAPSHOT_PATH = BASE_DIR / "parallel_velocity_panels.png"
+OUTPUT_DIR = PLOT_DIR / "outputs"
+MOVIE_PATH = OUTPUT_DIR / "parallel_velocity_panel_movie.mp4"
+SNAPSHOT_PATH = OUTPUT_DIR / "parallel_velocity_panel_snapshots.png"
 
 
 def _load_data():
-    with DataFile(str(SQUASHED_PATH)) as data_file:
-        ve = np.asarray(data_file.read("Ve"))
-        t_array = np.asarray(data_file.read("t_array"))
+    shard_paths = sorted(DATA_DIR.glob("BOUT.dmp.[0-9]*.nc"))
+    combined_path = DATA_DIR / "BOUT.dmp.nc"
+    combined_mtime = combined_path.stat().st_mtime if combined_path.exists() else float("-inf")
+
+    if shard_paths and max(path.stat().st_mtime for path in shard_paths) >= combined_mtime:
+        ve = np.asarray(collect("Ve", path=str(DATA_DIR), prefix="BOUT.dmp", xguards=True, yguards=True, info=False))
+        with DataFile(str(shard_paths[0])) as data_file:
+            t_array = np.asarray(data_file.read("t_array"))
+        print(f"Using MPI shard dumps from {DATA_DIR}")
+    else:
+        with DataFile(str(combined_path)) as data_file:
+            ve = np.asarray(data_file.read("Ve"))
+            t_array = np.asarray(data_file.read("t_array"))
+        print(f"Using combined dump from {combined_path}")
 
     with DataFile(str(GRID_PATH)) as grid_file:
         r = np.asarray(grid_file.read("R"))
@@ -126,6 +139,7 @@ def create_parallel_velocity_snapshots(ve: np.ndarray, t_array: np.ndarray, r: n
 
 
 def main() -> None:
+    OUTPUT_DIR.mkdir(exist_ok=True)
     print("Loading data for parallel velocity panels...")
     ve, t_array, r, z = _load_data()
     create_parallel_velocity_movie(ve, t_array, r, z)

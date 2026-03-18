@@ -1,0 +1,8 @@
+[submodule "external/hermes-3"]
+	path = external/hermes-3
+	url = https://github.com/boutproject/hermes-3.git
+	branch = fci
+[submodule "external/zoidberg"]
+	path = external/zoidberg
+	url = https://github.com/rogeriojorge/zoidberg.git
+	branch = fix/fci-boundary-hole-repair

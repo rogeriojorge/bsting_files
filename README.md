@@ -1,10 +1,97 @@
 # bsting_files
 
-This repository is a small, shareable bundle of the main scripts, runtime input, and lightweight companion files used for the BSTING-style Dommaschk grid and visualization workflow.
+This repository is now the single working tree for the BSTING Dommaschk stellarator setup.
 
-It is meant to be easy to browse and easy to reuse. The large simulation outputs, executables, and most generated artifacts are intentionally not included.
+Locally, it keeps the simulation case, plotting scripts, ParaView exports, movies, figures, and the external source trees needed to rebuild or inspect the workflow. In git, large run outputs and temporary build artifacts stay untracked so the GitHub repository remains reviewable.
 
-The figures and movies below were regenerated from the current stabilized local stellarator workflow.
+## Layout
+
+```text
+bsting_files/
+|-- docs/
+|   `-- assets/
+|-- external/
+|   |-- hermes-3/        # git submodule, branch: fci
+|   `-- zoidberg/        # git submodule, branch: fix/fci-boundary-hole-repair
+|-- plot/
+|   |-- outputs/
+|   |   |-- parallel_velocity_panel_movie.mp4
+|   |   `-- parallel_velocity_traced_surface_movie.mp4
+|   |-- render_parallel_velocity_panels.py
+|   |-- render_temperature_surfaces.py
+|   `-- render_parallel_velocity_surfaces.py
+`-- run_stellarator/
+    |-- BOUT.inp
+    |-- build_dommaschk_grid.py
+    |-- diagnose_hermes_stall.py
+    |-- dommaschk_grid_utils.py
+    |-- data/
+    |   |-- BOUT.inp
+    |   `-- Dommaschk.fci.nc
+    `-- paraview_exports/
+        |-- traced_field_lines_middle.vtm
+        |-- traced_field_lines_outer.vtm
+        `-- traced_movie_surfaces.vtm
+```
+
+## What lives where
+
+- `run_stellarator/` holds the runnable case, grid generation, stall diagnostics, and the local Hermes data directory.
+- `plot/` holds postprocessing scripts and their lightweight review outputs.
+- `external/hermes-3/` is the Hermes-3 source submodule on branch `fci`.
+- `external/zoidberg/` is the Zoidberg submodule on branch `fix/fci-boundary-hole-repair`.
+
+## Plot scripts
+
+- `plot/render_parallel_velocity_panels.py`
+  Renders the panel movie and panel snapshot set from the latest available dumps in `run_stellarator/data`.
+
+- `plot/render_parallel_velocity_surfaces.py`
+  Renders the traced-surface 3D movie and updates the ParaView `.vtm` exports from the same latest data source.
+
+- `plot/render_temperature_surfaces.py`
+  Renders the temperature traced-surface movie using the same inner and outer surface workflow, while writing temperature-specific local review exports.
+
+Both scripts resolve paths relative to the repository root, so they can be launched from anywhere inside the repo.
+
+## Run scripts
+
+- `run_stellarator/build_dommaschk_grid.py`
+  Rebuilds `run_stellarator/data/Dommaschk.fci.nc` using the targeted `x=1` trace repair.
+
+- `run_stellarator/diagnose_hermes_stall.py`
+  Reads the latest available dump source, preferring MPI shard dumps when they are newer than any combined dump.
+
+- `run_stellarator/BOUT.inp`
+  Top-level Hermes input for direct launches from `run_stellarator/`.
+
+- `run_stellarator/data/BOUT.inp`
+  Mirrored input inside the case data directory.
+
+## Local versus tracked files
+
+Tracked in git:
+
+- scripts and inputs
+- small review assets in `docs/assets/`
+- selected ParaView `.vtm` exports
+- lightweight movie outputs under `plot/outputs/` only when intentionally committed
+- submodule pointers for Hermes-3 and Zoidberg
+
+Kept local only:
+
+- `plot/outputs/*.mp4`
+- `plot/outputs/*.png`
+- `run_stellarator/data/BOUT.dmp*.nc`
+- `run_stellarator/data/BOUT.restart*.nc`
+- `run_stellarator/data/BOUT.log.*`
+- `run_stellarator/data/BOUT.settings`
+- `.BOUT.pid.*`
+- `run_stellarator/paraview_exports/traced_temperature_surfaces.vtm`
+- `run_stellarator/paraview_exports/temperature_field_lines_*.vtm`
+- submodule build artifacts and other temporary compilation files
+
+## Review assets
 
 <p align="center">
   <img src="docs/assets/fci_maps_overview.jpg" alt="FCI map overview after targeted x=1 trace repair" width="49%">
@@ -12,174 +99,18 @@ The figures and movies below were regenerated from the current stabilized local 
 </p>
 
 <p align="center">
-  <a href="te_3d_pyvista.mp4">
-    <img src="docs/assets/te_3d_preview.gif" alt="Animated preview of the traced-surface temperature movie" width="49%">
+  <a href="plot/outputs/parallel_velocity_traced_surface_movie.mp4">
+    <img src="docs/assets/te_3d_preview.gif" alt="Animated preview of the traced-surface movie" width="49%">
   </a>
-  <a href="panel_movies.mp4">
+  <a href="plot/outputs/parallel_velocity_panel_movie.mp4">
     <img src="docs/assets/panel_movies_preview.gif" alt="Animated preview of the panel movie" width="49%">
   </a>
 </p>
 
-Direct video links: [te_3d_pyvista.mp4](te_3d_pyvista.mp4) and [panel_movies.mp4](panel_movies.mp4)
+## Typical local workflow
 
-## Quick layout
-
-```text
-bsting_files/
-|-- README.md
-|-- generate_grid.py
-|-- panel_movies.py
-|-- panel_movies.mp4
-|-- visualize_temp_3d_pyvista.py
-|-- te_3d_pyvista.mp4
-|-- docs/
-|   `-- assets/
-|       |-- fci_maps_overview.jpg
-|       |-- hermes_stall_diagnostics.jpg
-|       |-- panel_movies_preview.gif
-|       |-- te_3d_preview.gif
-|       `-- ...
-`-- run_stellarator/
-    |-- create_dommaschk_grid.py
-    |-- data/
-    |   `-- BOUT.inp
-    `-- paraview_exports/
-        |-- traced_field_lines_middle.vtm
-        |-- traced_field_lines_outer.vtm
-        |-- traced_movie_surfaces.vtm
-        `-- traced_movie_surfaces_debug_fixed.png
-```
-
-## Requirements
-
-Exact Python package versions used in the local environment for the plotting and visualization scripts:
-
-- `numpy==2.3.4`
-- `matplotlib==3.8.4`
-- `scipy==1.16.0`
-- `tqdm==4.66.4`
-- `pyvista==0.46.4`
-- `boututils==0.2.1`
-
-Local source dependencies used by the shared scripts:
-
-- `generate_grid.py` from this repository
-- `zoidberg` modules from a local source checkout next to the original working repository
-
-Optional system tool:
-
-- `ffmpeg` if you want to write MP4 files from the plotting workflow
-
-## What this repository is for
-
-Use this repository if you want to:
-
-- inspect the grid-generation and visualization scripts
-- see the Hermes input used for the stellarator run setup
-- open the main traced-surface ParaView exports
-- view the small movie outputs that were generated from this setup
-
-This repository is not intended to be a complete, ready-to-run Hermes case by itself. The heavy simulation outputs and binaries were left out on purpose.
-
-## Repository contents
-
-### Main scripts
-
-- `generate_grid.py`
-  Builds the Dommaschk grid support used by the rest of the workflow.
-
-- `run_stellarator/create_dommaschk_grid.py`
-  Regenerates the stellarator grid, creates diagnostic figures, and writes selected ParaView exports.
-
-- `visualize_temp_3d_pyvista.py`
-  Builds the traced magnetic-field-surface movie and exports the traced surfaces and field lines for ParaView.
-
-- `panel_movies.py`
-  Produces the panel movie from the available simulation fields.
-
-### Input file
-
-- `run_stellarator/data/BOUT.inp`
-  Main Hermes runtime input used for this case.
-
-### Included companion outputs
-
-- `panel_movies.mp4`
-  Small panel movie generated from the run outputs.
-
-- `te_3d_pyvista.mp4`
-  Small 3D PyVista movie showing temperature on traced magnetic surfaces.
-
-- `docs/assets/panel_movies_preview.gif`
-  Animated landing-page preview of the panel movie that links through to the MP4.
-
-- `docs/assets/te_3d_preview.gif`
-  Animated landing-page preview of the traced-surface temperature movie that links through to the MP4.
-
-- `docs/assets/fci_maps_overview.jpg`
-  Compact grid and FCI-map diagnostic figure regenerated from the repaired local grid workflow.
-
-- `docs/assets/hermes_stall_diagnostics.jpg`
-  Compact stall-analysis figure showing the late-time boundary-adjacent runaway signature.
-
-- `run_stellarator/paraview_exports/traced_movie_surfaces.vtm`
-  Main traced-surface export for ParaView.
-
-- `run_stellarator/paraview_exports/traced_field_lines_middle.vtm`
-  Field-line export for the middle traced surface.
-
-- `run_stellarator/paraview_exports/traced_field_lines_outer.vtm`
-  Field-line export for the outer traced surface.
-
-- `run_stellarator/paraview_exports/traced_movie_surfaces_debug_fixed.png`
-  Small screenshot used to verify the corrected traced-surface seam geometry.
-
-## Typical workflow
-
-If you want to understand the files in a sensible order, use this sequence:
-
-1. Start with `run_stellarator/data/BOUT.inp` to see the simulation setup.
-2. Read `run_stellarator/create_dommaschk_grid.py` to understand how the grid and diagnostic exports are produced.
-3. Read `visualize_temp_3d_pyvista.py` to understand how the traced-surface movie and ParaView outputs are constructed.
-4. Read `panel_movies.py` to see how the panel-style movie is assembled.
-5. Open the included `.vtm` files in ParaView if you want to inspect the geometry interactively.
-6. Watch the included `.mp4` files if you only want the final lightweight outputs.
-
-## How to use the ParaView files
-
-Open these files directly in ParaView:
-
-- `run_stellarator/paraview_exports/traced_movie_surfaces.vtm`
-- `run_stellarator/paraview_exports/traced_field_lines_middle.vtm`
-- `run_stellarator/paraview_exports/traced_field_lines_outer.vtm`
-
-Suggested use:
-
-- load `traced_movie_surfaces.vtm` to inspect the traced surface geometry
-- load one or both `traced_field_lines_*.vtm` files to overlay the traced lines on the corresponding surfaces
-- color by `B` or one of the exported `*_last` arrays when available
-
-## What is intentionally excluded
-
-The following were not committed here:
-
-- Hermes executables and build directories
-- simulation dumps, restart files, logs, and large NetCDF outputs
-- large figures and movies above roughly 1 MB
-- most ParaView exports that were intermediate, redundant, or too bulky
-
-This keeps the repository small and focused on the user-facing pieces.
-
-## Reproducing results
-
-This repository contains the scripts and one main input file, but not the full heavy runtime environment. To reproduce everything from scratch you would still need:
-
-- a working Hermes/BOUT++ build
-- the required Python environment for the plotting scripts
-- the omitted simulation output files, or a fresh rerun that regenerates them
-
-In other words, this repository is best treated as a compact companion package rather than a complete archival snapshot.
-
-## Notes
-
-All files here were copied from a larger local workspace and reduced to the minimum useful set for sharing.
+1. Build or update Hermes in `external/hermes-3/` if needed.
+2. Rebuild the grid with `run_stellarator/build_dommaschk_grid.py`.
+3. Run Hermes from `run_stellarator/`.
+4. Regenerate review outputs with the scripts in `plot/`.
+5. Commit only the scripts, selected lightweight outputs, and submodule pointers.

@@ -1,31 +1,42 @@
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import numpy as np
 import pyvista as pv
+from boutdata.collect import collect
 from boututils.datafile import DataFile
 from scipy.interpolate import LinearNDInterpolator, NearestNDInterpolator
 from tqdm import tqdm
+
+PLOT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = PLOT_DIR.parent
+ZOIDBERG_ROOT = REPO_ROOT / "external" / "zoidberg"
+if str(ZOIDBERG_ROOT) not in sys.path:
+    sys.path.insert(0, str(ZOIDBERG_ROOT))
 
 from zoidberg import field as zb_field
 from zoidberg import fieldtracer as zb_fieldtracer
 
 
-BASE_DIR = Path(__file__).resolve().parent
-DATA_DIR = BASE_DIR / "run_stellarator" / "data"
-PARAVIEW_DIR = BASE_DIR / "run_stellarator" / "paraview_exports"
+DATA_DIR = REPO_ROOT / "run_stellarator" / "data"
+PARAVIEW_DIR = REPO_ROOT / "run_stellarator" / "paraview_exports"
 GRID_PATH = DATA_DIR / "Dommaschk.fci.nc"
-SQUASHED_PATH = DATA_DIR / "BOUT.dmp.nc"
-MOVIE_PATH = BASE_DIR / "te_3d_pyvista.mp4"
+OUTPUT_DIR = PLOT_DIR / "outputs"
+MOVIE_PATH = OUTPUT_DIR / "parallel_velocity_traced_surface_movie.mp4"
 TRACED_SURFACES_PATH = PARAVIEW_DIR / "traced_movie_surfaces.vtm"
 
 X_CENTRE = 1.0
 B_TOR = 1.0
-TOROIDAL_TURNS = 16
-TOROIDAL_SAMPLES_PER_TURN = 96
+OUTER_TOROIDAL_TURNS = 16
+OUTER_TOROIDAL_SAMPLES_PER_TURN = 96
+INNER_TOROIDAL_TURNS = 24
+INNER_TOROIDAL_SAMPLES_PER_TURN = 144
 WINDOW_SIZE = [1280, 1008]
 SURFACE_FIELD_NAMES = ["Te", "Ne", "Ve", "Pe", "Vh+", "NVh+"]
+MOVIE_FIELD_NAME = "Ve"
+MOVIE_FIELD_TITLE = "Parallel velocity on traced field-line surfaces"
 
 
 def _coelho_coefficients() -> np.ndarray:
@@ -36,6 +47,41 @@ def _coelho_coefficients() -> np.ndarray:
     coefficients[5, 9, 0] = -7.5e9
     coefficients[5, 9, 3] = 7.5e9
     return coefficients
+
+
+def _latest_dump_source() -> str:
+    shard_paths = sorted(DATA_DIR.glob("BOUT.dmp.[0-9]*.nc"))
+    combined_path = DATA_DIR / "BOUT.dmp.nc"
+    combined_mtime = combined_path.stat().st_mtime if combined_path.exists() else float("-inf")
+    if shard_paths:
+        latest_shard_mtime = max(path.stat().st_mtime for path in shard_paths)
+        if latest_shard_mtime >= combined_mtime:
+            return "shards"
+    if combined_path.exists():
+        return "combined"
+    raise FileNotFoundError(f"No dump files found in {DATA_DIR}")
+
+
+def _load_field_data() -> tuple[dict[str, np.ndarray], np.ndarray, str]:
+    source = _latest_dump_source()
+    if source == "shards":
+        field_data = {
+            field_name: np.asarray(
+                collect(field_name, path=str(DATA_DIR), prefix="BOUT.dmp", xguards=True, yguards=True, info=False)
+            )
+            for field_name in SURFACE_FIELD_NAMES
+        }
+        with DataFile(str(DATA_DIR / "BOUT.dmp.0.nc")) as data_file:
+            t_array = np.asarray(data_file.read("t_array"))
+        return field_data, t_array, "MPI shard dumps"
+
+    with DataFile(str(DATA_DIR / "BOUT.dmp.nc")) as data_file:
+        field_data = {
+            field_name: np.asarray(data_file.read(field_name))
+            for field_name in SURFACE_FIELD_NAMES
+        }
+        t_array = np.asarray(data_file.read("t_array"))
+    return field_data, t_array, "combined dump"
 
 
 def _structured_grid_from_xyz(x: np.ndarray, y: np.ndarray, z: np.ndarray) -> pv.StructuredGrid:
@@ -146,12 +192,18 @@ def _sample_volume_on_surface(
     return sampled
 
 
-def _trace_surface(field, start_r: np.ndarray, start_z: np.ndarray) -> dict[str, np.ndarray]:
+def _trace_surface(
+    field,
+    start_r: np.ndarray,
+    start_z: np.ndarray,
+    toroidal_turns: int,
+    toroidal_samples_per_turn: int,
+) -> dict[str, np.ndarray]:
     tracer = zb_fieldtracer.FieldTracer(field)
     phi_trace = np.linspace(
         0.0,
-        TOROIDAL_TURNS * 2.0 * np.pi,
-        TOROIDAL_TURNS * TOROIDAL_SAMPLES_PER_TURN,
+        toroidal_turns * 2.0 * np.pi,
+        toroidal_turns * toroidal_samples_per_turn,
         endpoint=False,
     )
     traced = tracer.follow_field_lines(start_r, start_z, phi_trace, rtol=1e-10)
@@ -175,15 +227,27 @@ def _traced_lines_path(surface_name: str) -> Path:
     return PARAVIEW_DIR / f"traced_field_lines_{surface_name}.vtm"
 
 
-def _surface_specs(nx: int) -> list[tuple[str, slice, tuple[int, int]]]:
+def _surface_specs(nx: int) -> list[tuple[str, slice, tuple[int, int], int, int]]:
     middle_width = max(8, nx // 4)
     middle_start = min(max(4, nx // 3), max(4, nx - middle_width - 2))
     middle_stop = min(nx - 2, middle_start + middle_width)
     outer_width = max(10, nx // 4)
     outer_start = max(middle_stop + 2, nx - outer_width)
     return [
-        ("middle", slice(middle_start, middle_stop), (-1, 0)),
-        ("outer", slice(outer_start, nx), (2, -3)),
+        (
+            "middle",
+            slice(middle_start, middle_stop),
+            (-1, 0),
+            INNER_TOROIDAL_TURNS,
+            INNER_TOROIDAL_SAMPLES_PER_TURN,
+        ),
+        (
+            "outer",
+            slice(outer_start, nx),
+            (2, -3),
+            OUTER_TOROIDAL_TURNS,
+            OUTER_TOROIDAL_SAMPLES_PER_TURN,
+        ),
     ]
 
 
@@ -274,13 +338,11 @@ def _export_paraview_outputs(surface_records: list[dict[str, object]]) -> list[P
 
 def main() -> None:
     print("--- Starting traced-surface PyVista visualization ---")
+    OUTPUT_DIR.mkdir(exist_ok=True)
+    PARAVIEW_DIR.mkdir(exist_ok=True)
 
-    with DataFile(str(SQUASHED_PATH)) as data_file:
-        field_data = {
-            field_name: np.asarray(data_file.read(field_name))
-            for field_name in SURFACE_FIELD_NAMES
-        }
-        t_array = data_file.read("t_array")
+    field_data, t_array, dump_source = _load_field_data()
+    print(f"Using {dump_source} from {DATA_DIR}")
 
     with DataFile(str(GRID_PATH)) as grid_file:
         r = np.asarray(grid_file.read("R"))
@@ -304,8 +366,14 @@ def main() -> None:
     inverse_maps = _build_inverse_plane_maps(r, z)
     surface_records: list[dict[str, object]] = []
 
-    for surface_index, (name, radial_slice, plane_bounds) in enumerate(_surface_specs(nx)):
-        traced_full = _trace_surface(field, start_r_line[radial_slice], start_z_line[radial_slice])
+    for surface_index, (name, radial_slice, plane_bounds, toroidal_turns, toroidal_samples_per_turn) in enumerate(_surface_specs(nx)):
+        traced_full = _trace_surface(
+            field,
+            start_r_line[radial_slice],
+            start_z_line[radial_slice],
+            toroidal_turns,
+            toroidal_samples_per_turn,
+        )
         segments = _extract_surface_segments(traced_full, ny, plane_bounds)
         for segment in segments:
             segment["sampled_last_fields"] = {
@@ -318,6 +386,8 @@ def main() -> None:
                 "surface_index": surface_index,
                 "segments": segments,
                 "plane_bounds": plane_bounds,
+                "toroidal_turns": toroidal_turns,
+                "toroidal_samples_per_turn": toroidal_samples_per_turn,
                 "trace_x": traced_full["x"],
                 "trace_y": traced_full["y"],
                 "trace_z": traced_full["z"],
@@ -326,16 +396,18 @@ def main() -> None:
 
     line_paths = _export_paraview_outputs(surface_records)
 
-    te_all = field_data["Te"]
-    global_min = float(np.nanmin(te_all))
-    global_max = float(np.nanmax(te_all))
-    vmin = global_min
-    vmax = float(np.nanpercentile(te_all[-1], 90))
-    if vmax <= vmin:
-        vmax = vmin + 1.0
+    movie_field = field_data[MOVIE_FIELD_NAME]
+    global_min = float(np.nanmin(movie_field))
+    global_max = float(np.nanmax(movie_field))
+    vmax = float(np.nanpercentile(np.abs(movie_field[-1]), 95))
+    if not np.isfinite(vmax) or vmax <= 0.0:
+        vmax = float(np.nanmax(np.abs(movie_field)))
+    if not np.isfinite(vmax) or vmax <= 0.0:
+        vmax = 1.0
+    vmin = -vmax
     print(
         f"Data range: {global_min:.2f} to {global_max:.2f}. "
-        f"Using Color Scale: {vmin:.2f} to {vmax:.2f} eV"
+        f"Using Color Scale: {vmin:.2f} to {vmax:.2f} for {MOVIE_FIELD_NAME}"
     )
 
     outer_surface = next(record for record in surface_records if record["name"] == "outer")
@@ -357,7 +429,7 @@ def main() -> None:
     plotter.open_movie(str(MOVIE_PATH), framerate=15)
 
     scalar_bar_args = {
-        "title": "Te [eV]",
+        "title": MOVIE_FIELD_NAME,
         "title_font_size": 20,
         "label_font_size": 16,
         "shadow": True,
@@ -368,8 +440,8 @@ def main() -> None:
     time_indices = np.linspace(0, len(t_array) - 1, total_frames, dtype=int)
     orbit_radius = grid_size * 1.72
     orbit_height = grid_size * 0.5
-    orbit_start = np.deg2rad(-118.0)
-    orbit_end = np.deg2rad(22.0)
+    orbit_start = np.deg2rad(-32.0)
+    orbit_end = np.deg2rad(8.0)
 
     for frame_idx, t_idx in enumerate(tqdm(time_indices, desc="Rendering Frames")):
         plotter.clear()
@@ -377,20 +449,20 @@ def main() -> None:
         for record in [outer_surface, middle_surface]:
             for segment_index, segment in enumerate(record["segments"]):
                 te_surface = _sample_volume_on_surface(
-                    te_all[t_idx],
+                    movie_field[t_idx],
                     segment["r"],
                     segment["z"],
                     segment["phi"],
                     inverse_maps,
                 )
                 frame_mesh = _structured_grid_from_xyz(segment["x"], segment["y"], segment["z"])
-                frame_mesh["Te"] = te_surface.ravel(order="F")
+                frame_mesh[MOVIE_FIELD_NAME] = te_surface.ravel(order="F")
                 frame_mesh["B"] = segment["b"].ravel(order="F")
                 show_bar = record["name"] == "middle" and segment_index == 0
                 plotter.add_mesh(
                     frame_mesh,
-                    scalars="Te",
-                    cmap="jet",
+                    scalars=MOVIE_FIELD_NAME,
+                    cmap="coolwarm",
                     clim=[vmin, vmax],
                     scalar_bar_args=scalar_bar_args if show_bar else None,
                     show_scalar_bar=show_bar,
@@ -398,7 +470,7 @@ def main() -> None:
                 )
 
         plotter.add_text(
-            f"Te on traced field-line surfaces | t = {t_array[t_idx]:.2e} s",
+            f"{MOVIE_FIELD_TITLE} | t = {t_array[t_idx]:.2e} s",
             font_size=18,
             position="upper_left",
         )
