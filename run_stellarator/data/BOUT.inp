@@ -10,7 +10,7 @@ MYG = 1
 
 [mesh]
 
-file = "Dommaschk.fci.nc" #rotating-ellipse.fci.nc" #W7-X_smooth.nc"#stellarator.fci.nc"
+file = "data/Dommaschk.fci.nc" #rotating-ellipse.fci.nc" #W7-X_smooth.nc"#stellarator.fci.nc"
 
 [mesh:paralleltransform]
 type = fci
@@ -69,7 +69,7 @@ bndry_all = neumann   # All other boundaries low density
 [Ph+]
 function = `Nh+`:function
 source = 2*4.8e6*gauss(x, 0.24)
-bndry_core = neumann_o2
+bndry_core = dirichlet_o2(1.0)
 bndry_par_all = parallel_neumann_o1
 bndry_all = neumann
 
@@ -102,7 +102,7 @@ diagnose = true
 [Pe]
 function = `Ph+`:function
 source = `Ph+`:source
-bndry_core = neumann_o2(0.0)
+bndry_core = dirichlet_o2(1.0)
 bndry_all = neumann
 bndry_par_all = parallel_neumann_o1
 #bndry_par_xin = parallel_dirichlet_o2(1.0)
